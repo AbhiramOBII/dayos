@@ -15,11 +15,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@dayos.app',
-            'password' => bcrypt('password'),
-            'is_admin' => true,
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@dayos.app'],
+            [
+                'name'     => 'Admin',
+                'password' => bcrypt('BlueBlood123#@!'),
+                'is_admin' => true,
+            ]
+        );
     }
 }
