@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- PWA --}}
+    <link rel="icon" type="image/png" href="/images/app-icon.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#151828">
     <meta name="mobile-web-app-capable" content="yes">

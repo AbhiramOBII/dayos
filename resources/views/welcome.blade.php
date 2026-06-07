@@ -1,39 +1,84 @@
-<x-layouts.app>
-    <div class="flex min-h-screen flex-col items-center justify-center px-4">
-        <div class="w-full max-w-md space-y-8 text-center">
-            <!-- Logo / Title -->
-            <div>
-                <h1 class="text-5xl font-bold tracking-tight text-indigo-600 dark:text-indigo-400">DayOS</h1>
-                <p class="mt-3 text-lg text-gray-500 dark:text-gray-400">Your day, orchestrated.</p>
-            </div>
-
-            <!-- Stack badge -->
-            <div class="flex flex-wrap items-center justify-center gap-2">
-                <span class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">Laravel</span>
-                <span class="rounded-full bg-pink-100 px-3 py-1 text-xs font-medium text-pink-700 dark:bg-pink-900 dark:text-pink-300">Livewire</span>
-                <span class="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700 dark:bg-sky-900 dark:text-sky-300">Alpine.js</span>
-                <span class="rounded-full bg-teal-100 px-3 py-1 text-xs font-medium text-teal-700 dark:bg-teal-900 dark:text-teal-300">Tailwind CSS</span>
-            </div>
-
-            <!-- Livewire Counter demo -->
-            <div class="rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <p class="mb-4 text-sm font-medium text-gray-500 dark:text-gray-400">Livewire + Alpine Counter</p>
-                <livewire:counter />
-            </div>
-
-            <!-- Alpine.js toggle demo -->
-            <div x-data="{ open: false }" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <button @click="open = !open" class="text-sm font-medium text-indigo-600 underline underline-offset-4 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300">
-                    <span x-text="open ? 'Hide' : 'Show'"></span> Alpine.js message
-                </button>
-                <p x-show="open" x-transition class="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                    Alpine.js is working! This toggle is pure client-side reactivity.
-                </p>
-            </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>DayOS</title>
+    <link rel="icon" type="image/png" href="/images/app-icon.png">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100svh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #151828;
+            color: #F5F0E8;
+            padding: 2rem 1.5rem;
+        }
+        .card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.75rem;
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+        }
+        .icon {
+            width: 88px;
+            height: 88px;
+            border-radius: 22px;
+            object-fit: cover;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .wordmark {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: #F5F0E8;
+            line-height: 1;
+        }
+        .tagline {
+            font-size: 0.875rem;
+            color: rgba(245,240,232,0.5);
+            margin-top: 0.375rem;
+            letter-spacing: 0.01em;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            background: #F5F0E8;
+            color: #151828;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+        .btn:hover { opacity: 0.88; }
+        footer {
+            position: fixed;
+            bottom: env(safe-area-inset-bottom, 1.5rem);
+            font-size: 0.75rem;
+            color: rgba(245,240,232,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <img src="/images/app-icon.png" alt="DayOS" class="icon">
+        <div>
+            <div class="wordmark">DayOS</div>
+            <p class="tagline">Your personal productivity OS</p>
         </div>
-
-        <footer class="mt-12 text-sm text-gray-400 dark:text-gray-600">
-            DayOS &copy; {{ date('Y') }} &mdash; Built with Laravel {{ Illuminate\Foundation\Application::VERSION }}
-        </footer>
+        <a href="{{ route('admin.login') }}" class="btn">Sign in</a>
     </div>
-</x-layouts.app>
+    <footer>&copy; {{ date('Y') }} DayOS</footer>
+</body>
+</html>
