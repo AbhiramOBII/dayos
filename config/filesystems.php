@@ -60,6 +60,20 @@ return [
             'report' => false,
         ],
 
+        'spaces' => [
+            'driver'                  => 's3',
+            'key'                     => env('DO_SPACES_KEY'),
+            'secret'                  => env('DO_SPACES_SECRET'),
+            'region'                  => env('DO_SPACES_REGION', 'blr1'),
+            'bucket'                  => env('DO_SPACES_BUCKET', 'dayos-storage'),
+            'endpoint'                => env('DO_SPACES_ENDPOINT', 'https://blr1.digitaloceanspaces.com'),
+            'url'                     => env('DO_SPACES_URL', 'https://dayos-storage.blr1.digitaloceanspaces.com'),
+            'use_path_style_endpoint' => false,
+            'visibility'              => 'public',
+            'throw'                   => true,
+            'report'                  => false,
+        ],
+
     ],
 
     /*
