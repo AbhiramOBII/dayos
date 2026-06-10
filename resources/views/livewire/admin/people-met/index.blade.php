@@ -1,4 +1,62 @@
-<div class="space-y-6">
+<div class="space-y-6" x-data>
+
+    {{-- Success toast --}}
+    @if($emailSuccess)
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
+             class="fixed top-5 right-5 z-50 flex items-center gap-3 rounded-xl bg-green-600 px-5 py-3.5 text-sm font-medium text-white shadow-lg">
+            <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{ $emailSuccess }}
+        </div>
+    @endif
+
+    {{-- Email Modal --}}
+    @if($showEmailModal)
+        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+             x-data x-on:keydown.escape.window="$wire.closeEmailModal()">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="font-bold text-brand-dark text-lg">Send Introduction Email</p>
+                        <p class="text-xs text-brand-muted mt-0.5">Will send with Obii Kriationz corporate profile attached.</p>
+                    </div>
+                    <button wire:click="closeEmailModal" class="rounded-lg p-1.5 text-brand-muted hover:bg-gray-100 transition">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                @if($emailError)
+                    <div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{{ $emailError }}</div>
+                @endif
+
+                <div>
+                    <label class="mb-1.5 block text-sm font-semibold text-brand-dark">Event / Where you met <span class="text-red-500">*</span></label>
+                    <input wire:model="eventName" type="text" placeholder="e.g. TiE Bengaluru Summit 2025"
+                           class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-brand-dark focus:border-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-muted/30 transition"
+                           x-ref="eventInput" x-init="$nextTick(() => $refs.eventInput.focus())" />
+                    @error('eventName') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button wire:click="sendIntroEmail" type="button"
+                            class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-dark px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark/90"
+                            wire:loading.attr="disabled" wire:loading.class="opacity-70">
+                        <span wire:loading.remove wire:target="sendIntroEmail">
+                            <svg class="inline h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            Send Email
+                        </span>
+                        <span wire:loading wire:target="sendIntroEmail" class="flex items-center gap-2">
+                            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            Sending…
+                        </span>
+                    </button>
+                    <button wire:click="closeEmailModal" type="button"
+                            class="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-brand-muted transition hover:border-brand-dark hover:text-brand-dark">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- Header --}}
     <div class="flex flex-wrap items-end justify-between gap-4">
@@ -92,6 +150,13 @@
 
                         {{-- Actions --}}
                         <div class="flex flex-shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                            @if($person->email)
+                                <button wire:click="openEmailModal({{ $person->id }})"
+                                        title="Send intro email"
+                                        class="rounded-lg p-2 text-brand-muted hover:bg-blue-50 hover:text-blue-600 transition">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                </button>
+                            @endif
                             <a href="{{ route('admin.people-met.edit', $person->id) }}"
                                class="rounded-lg p-2 text-brand-muted hover:bg-brand-light hover:text-brand-dark transition">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>

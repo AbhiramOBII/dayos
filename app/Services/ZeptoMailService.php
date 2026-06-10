@@ -42,14 +42,12 @@ class ZeptoMailService
 
     /**
      * Core send method.
+     *
+     * @param  array<string>  $attachmentPaths  Absolute file paths to attach
      */
-    public function send(string $toAddress, string $toName, string $subject, string $htmlBody, ?string $fromAddress = null, ?string $fromName = null): Response
+    public function send(string $toAddress, string $toName, string $subject, string $htmlBody, array $attachmentPaths = [], ?string $fromAddress = null, ?string $fromName = null): Response
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Zoho-enczapikey ' . $this->apiKey,
-            'Accept'        => 'application/json',
-            'Content-Type'  => 'application/json',
-        ])->post($this->endpoint, [
+        $payload = [
             'from' => [
                 'address' => $fromAddress ?? $this->from,
                 'name'    => $fromName    ?? $this->fromName,
@@ -64,7 +62,23 @@ class ZeptoMailService
             ],
             'subject'  => $subject,
             'htmlbody' => $htmlBody,
-        ]);
+        ];
+
+        if (!empty($attachmentPaths)) {
+            $payload['attachments'] = array_map(function (string $path) {
+                return [
+                    'name'      => basename($path),
+                    'content'   => base64_encode(file_get_contents($path)),
+                    'mime_type' => mime_content_type($path) ?: 'application/octet-stream',
+                ];
+            }, $attachmentPaths);
+        }
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Zoho-enczapikey ' . $this->apiKey,
+            'Accept'        => 'application/json',
+            'Content-Type'  => 'application/json',
+        ])->post($this->endpoint, $payload);
 
         if ($response->failed()) {
             throw new RuntimeException(
