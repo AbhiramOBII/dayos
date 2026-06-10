@@ -10,6 +10,7 @@ use App\Models\UpskillingGoal;
 use App\Models\DayTheme;
 use App\Models\Routine;
 use App\Models\RoutineLog;
+use App\Models\Pillar;
 use App\Models\Task;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -20,7 +21,9 @@ class Today extends Component
     public array  $reflections = [];
     public bool   $showAddTask = false;
     public string $newTaskTitle = '';
+    public string $newTaskDescription = '';
     public int    $newTaskPoints = 5;
+    public array  $newTaskPillars = [];
 
     public bool $showTodayThemePicker    = false;
     public bool $showTomorrowThemePicker = false;
@@ -90,14 +93,19 @@ class Today extends Component
     {
         $this->validate(['newTaskTitle' => 'required|string|max:255']);
 
-        Task::create([
-            'title'        => $this->newTaskTitle,
-            'value_points' => $this->newTaskPoints,
-            'status'       => TaskStatus::WIP->value,
-            'is_archived'  => false,
+        $task = Task::create([
+            'title'             => $this->newTaskTitle,
+            'short_description' => $this->newTaskDescription ?: null,
+            'value_points'      => $this->newTaskPoints,
+            'status'            => TaskStatus::WIP->value,
+            'is_archived'       => false,
         ]);
 
-        $this->reset('newTaskTitle', 'newTaskPoints', 'showAddTask');
+        if (! empty($this->newTaskPillars)) {
+            $task->pillars()->sync($this->newTaskPillars);
+        }
+
+        $this->reset('newTaskTitle', 'newTaskDescription', 'newTaskPillars', 'showAddTask');
         $this->newTaskPoints = 5;
     }
 
@@ -164,6 +172,7 @@ class Today extends Component
             ->get();
 
         $allThemes = DayTheme::orderBy('title')->get();
+        $pillars   = Pillar::orderBy('name')->get();
 
         $behaviouralDone  = $todayLogs->filter(fn ($l) => $l->is_completed)->count();
         $behaviouralTotal = $behaviouralRoutines->count();
@@ -205,7 +214,7 @@ class Today extends Component
             'behaviouralRoutines', 'reflectiveRoutines', 'todayLogs',
             'tasks', 'allThemes', 'behaviouralDone', 'behaviouralTotal',
             'dailyQuote', 'activeUpskillingGoal', 'upskillingTodayCount',
-            'upskillingTotalCount', 'upskillingDoneCount'
+            'upskillingTotalCount', 'upskillingDoneCount', 'pillars'
         ));
     }
 }

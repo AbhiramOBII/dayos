@@ -197,4 +197,61 @@
         </div>
     @endif
 
+    {{-- ===== EMOTIONAL AWARENESS ===== --}}
+    <div>
+        {{-- Section divider heading --}}
+        <div class="mb-4 flex items-center gap-4">
+            <div class="flex-1 h-px bg-gray-200"></div>
+            <div class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-brand-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+                <span class="text-xs font-bold uppercase tracking-widest text-brand-muted">Emotional Awareness</span>
+            </div>
+            <div class="flex-1 h-px bg-gray-200"></div>
+        </div>
+
+        @if($reflectionLogs->isEmpty())
+            <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-8 py-10 text-center">
+                <p class="text-sm font-medium text-brand-dark">No reflections written this {{ $period }}</p>
+                <p class="mt-1 text-xs text-brand-muted">Your journal entries from the Reflections section will appear here.</p>
+            </div>
+        @else
+            @php $byDate = $reflectionLogs->groupBy(fn($l) => $l->date->toDateString()); @endphp
+            <div class="space-y-4">
+                @foreach($byDate as $dateStr => $logs)
+                    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                        {{-- Date strip --}}
+                        <div class="flex items-center gap-4 bg-brand-light/40 px-6 py-3 border-b border-gray-100">
+                            <div class="text-center leading-none min-w-[2rem]">
+                                <p class="text-[10px] font-bold uppercase text-brand-muted">{{ \Carbon\Carbon::parse($dateStr)->format('D') }}</p>
+                                <p class="text-xl font-bold text-brand-dark leading-tight">{{ \Carbon\Carbon::parse($dateStr)->format('d') }}</p>
+                                <p class="text-[10px] uppercase text-brand-muted">{{ \Carbon\Carbon::parse($dateStr)->format('M') }}</p>
+                            </div>
+                            <div class="h-8 w-px bg-gray-200"></div>
+                            <p class="text-xs font-medium text-brand-muted">
+                                {{ $logs->count() }} {{ $logs->count() === 1 ? 'entry' : 'entries' }}
+                            </p>
+                        </div>
+                        {{-- Entries --}}
+                        <div class="divide-y divide-gray-50">
+                            @foreach($logs as $log)
+                                <div class="px-6 py-4">
+                                    @if($log->routine?->title)
+                                        <p class="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-muted">
+                                            {{ $log->routine->title }}
+                                        </p>
+                                    @endif
+                                    <p class="text-sm leading-relaxed text-brand-dark">
+                                        {{ $log->content }}
+                                    </p>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
 </div>

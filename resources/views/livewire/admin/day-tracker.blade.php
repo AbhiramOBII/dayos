@@ -99,7 +99,7 @@
                 <p class="text-xs text-brand-muted">Last {{ $history->count() }} logged days</p>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full min-w-[480px] text-sm">
+                <table class="w-full min-w-[560px] text-sm">
                     <thead>
                         <tr class="border-b border-gray-100 text-left">
                             <th class="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-brand-muted">Date</th>
@@ -108,25 +108,49 @@
                                     {{ $config['label'] }}
                                 </th>
                             @endforeach
+                            <th class="px-3 py-3"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
                         @foreach($history as $record)
-                            <tr class="hover:bg-gray-50/50 transition">
-                                <td class="px-5 py-3">
+                            @php $dateStr = $record->date->toDateString(); @endphp
+                            <tr x-data="{ editing: false }"
+                                :class="editing ? 'bg-brand-light/20' : 'hover:bg-gray-50/50'"
+                                class="transition">
+                                <td class="px-5 py-3 whitespace-nowrap">
                                     <span class="font-semibold text-brand-dark text-sm">{{ $record->date->format('d M') }}</span>
                                     <span class="text-xs text-brand-muted ml-1">{{ $record->date->format('D') }}</span>
                                 </td>
                                 @foreach($fields as $field => $config)
-                                    @php $t = !empty($record->$field) ? substr($record->$field, 0, 5) : null; @endphp
-                                    <td class="px-3 py-3 text-center">
-                                        @if($t)
-                                            <span class="text-sm font-medium text-brand-dark">{{ $t }}</span>
-                                        @else
-                                            <span class="text-gray-200 text-xs">—</span>
-                                        @endif
+                                    @php $t = !empty($record->$field) ? substr($record->$field, 0, 5) : ''; @endphp
+                                    <td class="px-3 py-2 text-center">
+                                        {{-- Read view --}}
+                                        <span x-show="!editing" class="text-sm font-medium text-brand-dark">
+                                            {{ $t ?: '—' }}
+                                        </span>
+                                        {{-- Edit input --}}
+                                        <input
+                                            x-show="editing"
+                                            type="time"
+                                            value="{{ $t }}"
+                                            @change="$wire.saveHistoryField('{{ $dateStr }}', '{{ $field }}', $event.target.value || null)"
+                                            class="w-24 rounded-lg border border-gray-200 px-2 py-1.5 text-xs text-center text-brand-dark focus:border-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-muted/20 transition">
                                     </td>
                                 @endforeach
+                                <td class="px-3 py-2 text-center whitespace-nowrap">
+                                    <button x-show="!editing"
+                                            @click="editing = true"
+                                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-brand-muted border border-gray-200 hover:border-brand-dark hover:text-brand-dark transition">
+                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                        Edit
+                                    </button>
+                                    <button x-show="editing"
+                                            @click="$wire.$refresh(); editing = false"
+                                            class="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold text-white bg-brand-dark hover:opacity-80 transition">
+                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        Done
+                                    </button>
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

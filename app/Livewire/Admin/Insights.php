@@ -88,18 +88,28 @@ class Insights extends Component
         // Day tracker averages
         $trackerAvg = $this->buildTrackerAverages($fromStr, $toStr);
 
-        // AI summary (cached)
+        // Reflections for the period
+        $reflectionLogs = RoutineLog::with('routine')
+            ->whereBetween('date', [$fromStr, $toStr])
+            ->whereNotNull('content')
+            ->where('content', '!=', '')
+            ->whereHas('routine', fn($q) => $q->where('type', 'reflective'))
+            ->orderBy('date')
+            ->get();
+
+        // AI summary (cached — bust when reflections change)
+        $reflectionHash = md5($reflectionLogs->pluck('content')->implode('|'));
         $aiSummary = cache()->remember(
-            $this->aiCacheKey($from),
+            $this->aiCacheKey($from) . '_' . $reflectionHash,
             now()->addHours(6),
-            fn() => $this->generateAiSummary($completedTasks, $routineDone, $totalSlots, $upskillingDone, $totalPoints)
+            fn() => $this->generateAiSummary($completedTasks, $routineDone, $totalSlots, $upskillingDone, $totalPoints, $reflectionLogs)
         );
 
         return view('livewire.admin.insights', compact(
             'from', 'to', 'completedTasks', 'completionRate', 'totalPoints',
             'upskillingDone', 'routineDone', 'routineRate', 'totalSlots',
             'pillars', 'dates', 'heatmap', 'dayPattern', 'maxPattern',
-            'trackerAvg', 'aiSummary'
+            'trackerAvg', 'aiSummary', 'reflectionLogs'
         ));
     }
 
@@ -193,27 +203,43 @@ class Insights extends Component
         return $avg;
     }
 
-    private function generateAiSummary(Collection $completedTasks, int $routineDone, int $totalSlots, int $upskillingDone, int $totalPoints): ?string
+    private function generateAiSummary(Collection $completedTasks, int $routineDone, int $totalSlots, int $upskillingDone, int $totalPoints, Collection $reflectionLogs): ?string
     {
         try {
-            $periodLabel  = $this->period === 'month' ? 'this month' : 'this week';
-            $routineRate  = $totalSlots > 0 ? round(($routineDone / $totalSlots) * 100) : 0;
+            $periodLabel = $this->period === 'month' ? 'this month' : 'this week';
+            $routineRate = $totalSlots > 0 ? round(($routineDone / $totalSlots) * 100) : 0;
+
             $pillarBreakdown = $completedTasks->flatMap->pillars
                 ->groupBy('name')->map->count()
                 ->sortByDesc(fn($c) => $c)
                 ->map(fn($c, $n) => "$n: $c")->values()->implode(', ');
 
-            $prompt = "Productivity review for {$periodLabel}:
+            // Build reflections block
+            $reflectionsBlock = '';
+            if ($reflectionLogs->isNotEmpty()) {
+                $lines = $reflectionLogs->map(function ($log) {
+                    $date  = \Carbon\Carbon::parse($log->date)->format('D d M');
+                    $title = $log->routine?->title ?? 'Reflection';
+                    return "  [{$date}] {$title}: \"{$log->content}\"";
+                })->implode("\n");
+
+                $reflectionsBlock = "\n\nUSER'S JOURNAL ENTRIES ({$periodLabel}):\n{$lines}";
+            }
+
+            $prompt = "Here is a complete picture of the user's {$periodLabel}:
+
+PERFORMANCE DATA:
 - Tasks completed: {$completedTasks->count()} (total value points: {$totalPoints})
 - Upskilling tasks done: {$upskillingDone}
 - Daily routine completion: {$routineDone}/{$totalSlots} ({$routineRate}%)"
-. ($pillarBreakdown ? "\n- Work area breakdown: {$pillarBreakdown}" : '') . "
+. ($pillarBreakdown ? "\n- Work area focus: {$pillarBreakdown}" : '')
+. $reflectionsBlock . "
 
-Write a warm, personal 2–3 sentence insight: what went well, what the data reveals about focus and consistency, and one concrete suggestion for the next period. Pure flowing prose, no bullet points, no headers, under 80 words.";
+Using both the numbers AND the journal entries, write a warm, personal 3–4 sentence insight. Acknowledge specific emotions or themes from the reflections if present. Point out what the data + inner narrative together reveal. Close with one grounded, forward-looking suggestion. Pure flowing prose, no bullet points, no headers, under 100 words.";
 
-            $system = 'You are a personal productivity coach. Be warm, direct, insightful. Pure prose only — no bullets, no headers. Under 80 words.';
+            $system = 'You are a deeply empathetic personal coach who combines productivity data with emotional intelligence. You read journal entries carefully and reflect them back with care. Pure prose only — no bullets, no headers, no bold text.';
 
-            return app(AnthropicService::class)->message($prompt, $system, 300);
+            return app(AnthropicService::class)->message($prompt, $system, 400);
         } catch (\Exception) {
             return null;
         }

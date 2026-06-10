@@ -30,6 +30,20 @@ class DayTracker extends Component
         );
     }
 
+    public function saveHistoryField(string $date, string $field, ?string $value): void
+    {
+        $allowed = ['wake_up_time', 'office_time', 'lunch_time', 'come_home_time', 'dinner_time', 'sleep_time'];
+
+        if (! in_array($field, $allowed) || $date >= $this->today) {
+            return;
+        }
+
+        DailyTimeline::updateOrCreate(
+            ['date' => $date],
+            [$field => $value ?: null]
+        );
+    }
+
     public function render()
     {
         $todayRecord = DailyTimeline::where('date', $this->today)->first();

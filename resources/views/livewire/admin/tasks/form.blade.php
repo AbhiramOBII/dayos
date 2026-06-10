@@ -39,17 +39,16 @@
             <!-- Value Points (Fibonacci) -->
             <div>
                 <label class="mb-2 block text-sm font-medium text-brand-dark">Value Points</label>
-                <div class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-2.5">
                     @foreach($availablePoints as $point)
-                        <label class="cursor-pointer">
-                            <input type="radio" wire:model="value_points" value="{{ $point->value }}" class="sr-only" />
-                            <span class="flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition
+                        <button type="button"
+                            wire:click="$set('value_points', {{ $point->value }})"
+                            class="flex h-11 w-11 items-center justify-center rounded-full border-2 text-sm font-bold transition
                                 {{ (int) $value_points === $point->value
                                     ? 'border-brand-dark bg-brand-dark text-brand-light'
                                     : 'border-gray-300 text-brand-muted hover:border-brand-muted hover:text-brand-dark' }}">
-                                {{ $point->label() }}
-                            </span>
-                        </label>
+                            {{ $point->label() }}
+                        </button>
                     @endforeach
                 </div>
                 @error('value_points') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
@@ -60,15 +59,14 @@
                 <label class="mb-2 block text-sm font-medium text-brand-dark">Status</label>
                 <div class="flex flex-wrap gap-2">
                     @foreach($availableStatuses as $s)
-                        <label class="cursor-pointer">
-                            <input type="radio" wire:model="status" value="{{ $s->value }}" class="sr-only" />
-                            <span class="inline-flex items-center rounded-full border-2 px-4 py-1.5 text-sm font-medium transition
+                        <button type="button"
+                            wire:click="$set('status', '{{ $s->value }}')"
+                            class="inline-flex items-center rounded-full border-2 px-4 py-2 text-sm font-medium transition
                                 {{ $status === $s->value
                                     ? 'border-brand-dark bg-brand-dark text-brand-light'
                                     : 'border-gray-300 text-brand-muted hover:border-brand-muted hover:text-brand-dark' }}">
-                                {{ $s->label() }}
-                            </span>
-                        </label>
+                            {{ $s->label() }}
+                        </button>
                     @endforeach
                 </div>
                 @error('status') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror

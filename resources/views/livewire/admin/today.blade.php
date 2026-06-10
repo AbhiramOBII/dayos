@@ -338,7 +338,7 @@
 
     {{-- ===== TODAY THEME PICKER MODAL ===== --}}
     @if($showTodayThemePicker)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" wire:click="$set('showTodayThemePicker', false)"></div>
             <div class="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl">
                 <h3 class="text-lg font-bold text-brand-dark">Set Today's Theme</h3>
@@ -376,48 +376,94 @@
 
     {{-- ===== ADD TASK MODAL ===== --}}
     @if($showAddTask)
-        <div class="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+        <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" wire:click="$set('showAddTask', false)"></div>
-            <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-                <h3 class="text-lg font-bold text-brand-dark">Quick Add Task</h3>
-                <p class="mt-0.5 text-sm text-brand-muted">Will be added as WIP immediately.</p>
-                <div class="mt-4 space-y-4">
+            <div class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl flex flex-col max-h-[90vh]">
+
+                {{-- Header --}}
+                <div class="flex items-center justify-between border-b border-gray-100 px-6 py-5">
                     <div>
-                        <label class="mb-1.5 block text-sm font-medium text-brand-dark">Task Title</label>
+                        <h3 class="text-lg font-bold text-brand-dark">Add Task</h3>
+                        <p class="mt-0.5 text-xs text-brand-muted">Added as WIP immediately</p>
+                    </div>
+                    <button wire:click="$set('showAddTask', false)"
+                        class="rounded-lg p-2 text-brand-muted hover:bg-gray-100 hover:text-brand-dark transition">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                {{-- Scrollable body --}}
+                <div class="overflow-y-auto px-6 py-5 space-y-5">
+
+                    {{-- Title --}}
+                    <div>
+                        <label class="mb-1.5 block text-sm font-semibold text-brand-dark">Task Title <span class="text-red-500">*</span></label>
                         <input wire:model="newTaskTitle"
                             type="text"
-                            class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-brand-dark focus:border-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-muted/30"
+                            class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-brand-dark focus:border-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-muted/30 transition"
                             placeholder="What needs to be done?"
-                            wire:keydown.enter="quickAddTask"
                             autofocus />
                         @error('newTaskTitle') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
+
+                    {{-- Short Description --}}
                     <div>
-                        <label class="mb-1.5 block text-sm font-medium text-brand-dark">Value Points</label>
+                        <label class="mb-1.5 block text-sm font-semibold text-brand-dark">Short Description <span class="text-xs font-normal text-brand-muted">(optional)</span></label>
+                        <textarea wire:model="newTaskDescription"
+                            rows="2"
+                            class="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm text-brand-dark focus:border-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-muted/30 transition"
+                            placeholder="Brief context or notes…"></textarea>
+                    </div>
+
+                    {{-- Value Points --}}
+                    <div>
+                        <label class="mb-2 block text-sm font-semibold text-brand-dark">Value Points</label>
                         <div class="flex flex-wrap gap-2">
                             @foreach([3, 5, 8, 13, 21, 34, 55] as $pt)
                                 <button type="button"
                                     wire:click="$set('newTaskPoints', {{ $pt }})"
-                                    class="flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold transition
-                                        {{ $newTaskPoints === $pt ? 'border-brand-dark bg-brand-dark text-white' : 'border-gray-300 text-brand-muted hover:border-brand-muted' }}">
+                                    class="flex h-10 w-10 items-center justify-center rounded-full border-2 text-xs font-bold transition
+                                        {{ $newTaskPoints === $pt ? 'border-brand-dark bg-brand-dark text-white' : 'border-gray-200 text-brand-muted hover:border-brand-muted' }}">
                                     {{ $pt }}
                                 </button>
                             @endforeach
                         </div>
                     </div>
+
+                    {{-- Pillars --}}
+                    @if($pillars->count() > 0)
+                        <div>
+                            <label class="mb-2 block text-sm font-semibold text-brand-dark">Pillars <span class="text-xs font-normal text-brand-muted">(optional)</span></label>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach($pillars as $pillar)
+                                    @php $selected = in_array($pillar->id, $newTaskPillars); @endphp
+                                    <button type="button"
+                                        wire:click="{{ $selected ? '$set(\'newTaskPillars\', ' . collect($newTaskPillars)->reject(fn($id) => $id === $pillar->id)->values()->toJson() . ')' : '$set(\'newTaskPillars\', ' . collect($newTaskPillars)->push($pillar->id)->values()->toJson() . ')' }}"
+                                        class="rounded-full border px-3 py-1.5 text-xs font-semibold transition
+                                            {{ $selected ? 'border-brand-dark bg-brand-dark text-white' : 'border-gray-200 text-brand-muted hover:border-brand-muted hover:text-brand-dark' }}">
+                                        {{ $pillar->name }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
                 </div>
-                <div class="mt-5 flex items-center gap-3">
+
+                {{-- Footer --}}
+                <div class="flex items-center gap-3 border-t border-gray-100 px-6 py-4">
                     <button wire:click="quickAddTask"
-                        class="inline-flex items-center gap-2 rounded-lg bg-brand-dark px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark/90"
+                        class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-dark px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-dark/90"
                         wire:loading.attr="disabled" wire:loading.class="opacity-70" wire:target="quickAddTask">
                         <span wire:loading.remove wire:target="quickAddTask">Add Task</span>
                         <span wire:loading wire:target="quickAddTask">Adding…</span>
                     </button>
                     <button wire:click="$set('showAddTask', false)"
-                        class="rounded-lg px-4 py-2.5 text-sm font-medium text-brand-muted transition hover:text-brand-dark">
+                        class="rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-brand-muted transition hover:border-brand-dark hover:text-brand-dark">
                         Cancel
                     </button>
                 </div>
+
             </div>
         </div>
     @endif
