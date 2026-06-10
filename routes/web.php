@@ -3,6 +3,7 @@
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\DayThemes;
 use App\Livewire\Admin\Login;
+use App\Livewire\Admin\PeopleMet;
 use App\Livewire\Admin\Routines;
 use App\Livewire\Admin\Tasks;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +39,11 @@ Route::prefix('admin')->group(function () {
         Route::get('routines', Routines\Index::class)->name('admin.routines.index');
         Route::get('routines/create', Routines\Form::class)->name('admin.routines.create');
         Route::get('routines/{id}/edit', Routines\Form::class)->name('admin.routines.edit');
+
+        // People Met
+        Route::get('people-met', PeopleMet\Index::class)->name('admin.people-met.index');
+        Route::get('people-met/create', PeopleMet\Form::class)->name('admin.people-met.create');
+        Route::get('people-met/{id}/edit', PeopleMet\Form::class)->name('admin.people-met.edit');
 
         Route::post('logout', function () {
             Auth::logout();

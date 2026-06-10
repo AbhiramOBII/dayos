@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'zeptomail' => [
+        'key'      => env('ZEPTOMAIL_API_KEY'),
+        'from'     => env('ZEPTOMAIL_FROM_ADDRESS', 'noreply@abhiramchandramohan.com'),
+        'from_name'=> env('ZEPTOMAIL_FROM_NAME', 'DayOS'),
+    ],
+
 ];

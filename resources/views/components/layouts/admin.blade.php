@@ -79,6 +79,11 @@
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
                     Routines
                 </a>
+                <a href="{{ route('admin.people-met.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-brand-light/80 transition hover:bg-brand-muted/30 hover:text-brand-white {{ request()->routeIs('admin.people-met.*') ? 'bg-brand-muted/30 text-brand-white' : '' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    People Met
+                </a>
                 <a href="#"
                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-brand-light/80 transition hover:bg-brand-muted/30 hover:text-brand-white">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>

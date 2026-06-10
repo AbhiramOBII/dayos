@@ -68,6 +68,58 @@ class AnthropicService
     }
 
     /**
+     * Extract structured data from a visiting card image via vision.
+     *
+     * @param  string  $base64Image  Base64-encoded image data
+     * @param  string  $mediaType    e.g. "image/jpeg" or "image/png"
+     * @return array{name:string,email:string,phone:string,company:string,location:string}
+     */
+    public function extractBusinessCard(string $base64Image, string $mediaType = 'image/jpeg'): array
+    {
+        $payload = [
+            'model'      => $this->model,
+            'max_tokens' => 512,
+            'system'     => 'You are a business card OCR engine. Extract contact details and return ONLY valid JSON — no markdown, no code fences, no explanation.',
+            'messages'   => [
+                [
+                    'role'    => 'user',
+                    'content' => [
+                        [
+                            'type'   => 'image',
+                            'source' => [
+                                'type'       => 'base64',
+                                'media_type' => $mediaType,
+                                'data'       => $base64Image,
+                            ],
+                        ],
+                        [
+                            'type' => 'text',
+                            'text' => 'Extract all contact information from this business card. Return a JSON object with these exact keys: name, email, phone, company, location. Use empty string "" for any field not found on the card.',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $response = $this->post('/messages', $payload);
+        $text     = trim($response->json('content.0.text') ?? '{}');
+
+        // Strip markdown code fences if Claude wrapped the JSON anyway
+        $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
+        $text = preg_replace('/\s*```$/', '', $text);
+        $text = trim($text);
+
+        $decoded = json_decode($text, true);
+
+        if ($decoded === null) {
+            \Illuminate\Support\Facades\Log::warning('extractBusinessCard: failed to parse JSON', ['raw' => $text]);
+            return [];
+        }
+
+        return $decoded;
+    }
+
+    /**
      * Make an authenticated POST request to the Anthropic API.
      */
     private function post(string $endpoint, array $payload): Response
