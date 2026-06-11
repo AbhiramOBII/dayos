@@ -228,16 +228,16 @@ class Insights extends Component
 
             $prompt = "Here is a complete picture of the user's {$periodLabel}:
 
-PERFORMANCE DATA:
+DATA:
 - Tasks completed: {$completedTasks->count()} (total value points: {$totalPoints})
 - Upskilling tasks done: {$upskillingDone}
 - Daily routine completion: {$routineDone}/{$totalSlots} ({$routineRate}%)"
 . ($pillarBreakdown ? "\n- Work area focus: {$pillarBreakdown}" : '')
 . $reflectionsBlock . "
 
-Using both the numbers AND the journal entries, write a warm, personal 3–4 sentence insight. Acknowledge specific emotions or themes from the reflections if present. Point out what the data + inner narrative together reveal. Close with one grounded, forward-looking suggestion. Pure flowing prose, no bullet points, no headers, under 100 words.";
+Write a warm, 3–4 sentence reflection. Lead with emotional validation — acknowledge what they may be feeling based on the journal entries and numbers, without judgment. Gently name any patterns you notice, as an observation not a verdict. If you offer a suggestion, make it feel like a kind question or an invitation, never a directive or a challenge. The tone must feel like a safe, caring space — the user should feel seen and supported, not graded. Pure flowing prose, no bullet points, no headers, under 110 words.";
 
-            $system = 'You are a deeply empathetic personal coach who combines productivity data with emotional intelligence. You read journal entries carefully and reflect them back with care. Pure prose only — no bullets, no headers, no bold text.';
+            $system = 'You are a compassionate, non-judgmental therapist who happens to have access to the user\'s productivity data and personal journal. Your role is to make the user feel deeply understood — not evaluated. You never shame, pressure, or set targets. You reflect emotions back gently, name patterns with curiosity not criticism, and offer possibilities instead of prescriptions. If the numbers are low, you hold space for that without dwelling on it. Pure prose only — no bullets, no headers, no bold text.';
 
             return app(AnthropicService::class)->message($prompt, $system, 400);
         } catch (\Exception) {
