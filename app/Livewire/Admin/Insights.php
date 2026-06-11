@@ -27,7 +27,9 @@ class Insights extends Component
     public function regenerateSummary(): void
     {
         [$from] = $this->getRange();
-        cache()->forget($this->aiCacheKey($from));
+        $key = $this->aiCacheKey($from);
+        cache()->forget($key);
+        cache()->forget($key . '_hash');
     }
 
     private function getRange(): array
@@ -97,13 +99,23 @@ class Insights extends Component
             ->orderBy('date')
             ->get();
 
-        // AI summary (cached — bust when reflections change)
-        $reflectionHash = md5($reflectionLogs->pluck('content')->implode('|'));
+        // AI summary — cache key is stable; auto-bust when reflections change by comparing stored hash
+        $cacheKey     = $this->aiCacheKey($from);
+        $hashKey      = $cacheKey . '_hash';
+        $currentHash  = md5($reflectionLogs->pluck('content')->implode('|'));
+        $storedHash   = cache()->get($hashKey);
+
+        if ($storedHash !== $currentHash) {
+            cache()->forget($cacheKey);
+        }
+
         $aiSummary = cache()->remember(
-            $this->aiCacheKey($from) . '_' . $reflectionHash,
+            $cacheKey,
             now()->addHours(6),
             fn() => $this->generateAiSummary($completedTasks, $routineDone, $totalSlots, $upskillingDone, $totalPoints, $reflectionLogs)
         );
+
+        cache()->put($hashKey, $currentHash, now()->addHours(6));
 
         return view('livewire.admin.insights', compact(
             'from', 'to', 'completedTasks', 'completionRate', 'totalPoints',
