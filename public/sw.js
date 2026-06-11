@@ -1,4 +1,4 @@
-const CACHE = 'dayos-v1';
+const CACHE = 'dayos-v2';
 
 // Static asset extensions to cache aggressively
 const STATIC_EXT = /\.(css|js|woff2?|ttf|png|jpg|jpeg|gif|svg|ico)(\?.*)?$/;
