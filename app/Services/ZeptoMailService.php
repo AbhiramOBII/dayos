@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class ZeptoMailService
@@ -74,6 +75,13 @@ class ZeptoMailService
             }, $attachmentPaths);
         }
 
+        Log::info('ZeptoMail sending email', [
+            'to'      => $toAddress,
+            'subject' => $subject,
+            'from'    => $payload['from']['address'] ?? null,
+            'has_attachments' => !empty($payload['attachments']),
+        ]);
+
         $response = Http::withHeaders([
             'Authorization' => 'Zoho-enczapikey ' . $this->apiKey,
             'Accept'        => 'application/json',
@@ -81,10 +89,21 @@ class ZeptoMailService
         ])->post($this->endpoint, $payload);
 
         if ($response->failed()) {
+            Log::error('ZeptoMail API error', [
+                'to'          => $toAddress,
+                'subject'     => $subject,
+                'status'      => $response->status(),
+                'body'        => $response->body(),
+            ]);
             throw new RuntimeException(
                 'ZeptoMail API error: ' . $response->status() . ' — ' . $response->body()
             );
         }
+
+        Log::info('ZeptoMail email sent successfully', [
+            'to'     => $toAddress,
+            'status' => $response->status(),
+        ]);
 
         return $response;
     }

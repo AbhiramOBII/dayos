@@ -94,62 +94,23 @@
     @else
         <div class="space-y-3">
             @foreach($people as $person)
-                <div class="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-gray-300 hover:shadow-md">
-                    <div class="flex items-start gap-4">
+                <div class="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow-md">
 
-                        {{-- Avatar --}}
-                        <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand-dark text-sm font-bold text-white">
+                    {{-- Header: avatar + name/company + actions --}}
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-dark text-sm font-bold text-white">
                             {{ strtoupper(substr($person->name, 0, 1)) }}
                         </div>
 
-                        {{-- Details --}}
                         <div class="flex-1 min-w-0">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <p class="font-semibold text-brand-dark">{{ $person->name }}</p>
-                                @if($person->company)
-                                    <span class="rounded-full bg-brand-light px-2.5 py-0.5 text-xs font-medium text-brand-muted">{{ $person->company }}</span>
-                                @endif
-                            </div>
-
-                            <div class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-brand-muted">
-                                @if($person->email)
-                                    <span class="flex items-center gap-1">
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                                        {{ $person->email }}
-                                    </span>
-                                @endif
-                                @if($person->phone)
-                                    <span class="flex items-center gap-1">
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                                        {{ $person->phone }}
-                                    </span>
-                                @endif
-                                @if($person->place || $person->location)
-                                    <span class="flex items-center gap-1">
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                        {{ collect([$person->place, $person->location])->filter()->implode(' · ') }}
-                                    </span>
-                                @endif
-                                <span class="flex items-center gap-1">
-                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                    {{ $person->met_at->format('d M Y, g:i A') }}
-                                </span>
-                            </div>
-
-                            @if($person->context)
-                                <p class="mt-2 text-xs leading-relaxed text-brand-dark/70 line-clamp-2">{{ $person->context }}</p>
+                            <p class="font-semibold text-brand-dark truncate">{{ $person->name }}</p>
+                            @if($person->company)
+                                <span class="mt-0.5 inline-block max-w-full truncate rounded-full bg-brand-light px-2.5 py-0.5 text-xs font-medium text-brand-muted">{{ $person->company }}</span>
                             @endif
                         </div>
 
-                        {{-- Card image thumbnail --}}
-                        @if($person->card_image_url)
-                            <a href="{{ $person->card_image_url }}" target="_blank" class="flex-shrink-0">
-                                <img src="{{ $person->card_image_url }}" alt="Card" class="h-14 w-20 rounded-lg border border-gray-200 object-cover transition hover:opacity-80" />
-                            </a>
-                        @endif
-
-                        {{-- Actions --}}
-                        <div class="flex flex-shrink-0 items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                        {{-- Actions: always visible on mobile, hover-only on desktop --}}
+                        <div class="flex flex-shrink-0 items-center gap-0.5 sm:opacity-0 sm:transition sm:group-hover:opacity-100">
                             @if($person->email)
                                 <button wire:click="openEmailModal({{ $person->id }})"
                                         title="Send intro email"
@@ -167,6 +128,44 @@
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
                         </div>
+                    </div>
+
+                    {{-- Body: details + card image --}}
+                    <div class="mt-3 flex items-start gap-3">
+                        <div class="flex-1 min-w-0 space-y-1 text-xs text-brand-muted">
+                            @if($person->email)
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                    <span class="truncate">{{ $person->email }}</span>
+                                </div>
+                            @endif
+                            @if($person->phone)
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                    <span class="whitespace-nowrap">{{ $person->phone }}</span>
+                                </div>
+                            @endif
+                            @if($person->place || $person->location)
+                                <div class="flex items-start gap-1.5 min-w-0">
+                                    <svg class="h-3.5 w-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    <span class="break-words">{{ collect([$person->place, $person->location])->filter()->implode(' · ') }}</span>
+                                </div>
+                            @endif
+                            <div class="flex items-center gap-1.5">
+                                <svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span class="whitespace-nowrap">{{ $person->met_at->format('d M Y, g:i A') }}</span>
+                            </div>
+                            @if($person->context)
+                                <p class="pt-1 leading-relaxed text-brand-dark/70 line-clamp-2">{{ $person->context }}</p>
+                            @endif
+                        </div>
+
+                        {{-- Card image thumbnail --}}
+                        @if($person->card_image_url)
+                            <a href="{{ $person->card_image_url }}" target="_blank" class="flex-shrink-0">
+                                <img src="{{ $person->card_image_url }}" alt="Card" class="h-16 w-24 rounded-lg border border-gray-200 object-cover transition hover:opacity-80" />
+                            </a>
+                        @endif
                     </div>
                 </div>
             @endforeach

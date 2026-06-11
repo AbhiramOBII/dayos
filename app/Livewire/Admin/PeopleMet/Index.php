@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\PeopleMet;
 
 use App\Models\PersonMet;
 use App\Services\ZeptoMailService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -75,6 +76,13 @@ class Index extends Component
             $this->showEmailModal = false;
         } catch (\Exception $e) {
             $this->emailError = 'Failed to send: ' . $e->getMessage();
+            Log::error('PeopleMet intro email failed', [
+                'person_id'  => $this->emailPersonId,
+                'to_email'   => $person->email ?? null,
+                'event_name' => $this->eventName,
+                'error'      => $e->getMessage(),
+                'trace'      => $e->getTraceAsString(),
+            ]);
         } finally {
             $this->emailSending = false;
         }
