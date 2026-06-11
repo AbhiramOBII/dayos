@@ -53,19 +53,23 @@ class Insights extends Component
         $fromStr = $from->toDateString();
         $toStr   = $to->toDateString();
 
-        // Completed tasks this period
+        // Completed tasks this period (excluding upskilling tasks)
         $completedTasks = Task::with('pillars')
             ->where('status', TaskStatus::Completed->value)
+            ->whereNull('upskilling_goal_id')
             ->whereBetween('completed_at', [$from, $to])
             ->get();
 
-        // Completion rate vs all active tasks
-        $totalActive    = Task::where('is_archived', false)->count() + $completedTasks->count();
+        // Completion rate vs all active non-upskilling tasks
+        $totalActive    = Task::where('is_archived', false)->whereNull('upskilling_goal_id')->count() + $completedTasks->count();
         $completionRate = $totalActive > 0
             ? round(($completedTasks->count() / $totalActive) * 100)
             : 0;
 
-        $upskillingDone = $completedTasks->whereNotNull('upskilling_goal_id')->count();
+        $upskillingDone = Task::where('status', TaskStatus::Completed->value)
+            ->whereNotNull('upskilling_goal_id')
+            ->whereBetween('completed_at', [$from, $to])
+            ->count();
 
         // Routine KPIs
         $behaviouralRoutines = Routine::where('type', 'behavioural')->where('is_active', true)->get();
@@ -169,6 +173,7 @@ class Insights extends Component
             $dow = $mysqlDow[$i];
 
             $tasks = Task::where('status', TaskStatus::Completed->value)
+                ->whereNull('upskilling_goal_id')
                 ->whereBetween('completed_at', [$from, $to])
                 ->whereRaw('DAYOFWEEK(completed_at) = ?', [$dow])
                 ->count();
