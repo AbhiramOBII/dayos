@@ -4,6 +4,8 @@ namespace App\Livewire\Admin\PeopleMet;
 
 use App\Models\PersonMet;
 use App\Services\AnthropicService;
+use App\Services\ZeptoMailService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -123,9 +125,42 @@ class Form extends Component
             PersonMet::findOrFail($this->personId)->update($data);
         } else {
             PersonMet::create($data);
+
+            if (!empty($this->email)) {
+                $this->sendIntroEmail();
+            }
         }
 
         $this->redirect(route('admin.people-met.index'), navigate: true);
+    }
+
+    private function sendIntroEmail(): void
+    {
+        try {
+            $html = view('emails.introduction', [
+                'name'      => $this->name,
+                'eventName' => $this->place ?: 'our recent meeting',
+            ])->render();
+
+            $pdfPath     = public_path('obiikriationzwebllp-profile.pdf');
+            $attachments = file_exists($pdfPath) ? [$pdfPath] : [];
+
+            app(ZeptoMailService::class)->send(
+                $this->email,
+                $this->name,
+                'Connecting after ' . ($this->place ?: 'our recent meeting') . ' — Abhiram Chandramohan',
+                $html,
+                $attachments
+            );
+        } catch (\Exception $e) {
+            Log::error('PeopleMet auto intro email failed', [
+                'to_email'   => $this->email,
+                'to_name'    => $this->name,
+                'event_name' => $this->place,
+                'error'      => $e->getMessage(),
+                'trace'      => $e->getTraceAsString(),
+            ]);
+        }
     }
 
     public function render()
