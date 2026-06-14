@@ -79,8 +79,16 @@ class Insights extends Component
             ->where('is_completed', true)->count();
         $routineRate = $totalSlots > 0 ? round(($routineDone / $totalSlots) * 100) : 0;
 
-        // Total value points
-        $totalPoints = $completedTasks->sum(fn($t) => $t->value_points->value);
+        // Weight-based completion metrics (the real signal)
+        $completedWeight  = $completedTasks->sum(fn($t) => $t->value_points->value);
+        $totalPoints      = $completedWeight; // alias kept for view
+        $allTasksWeight   = Task::where('is_archived', false)->whereNull('upskilling_goal_id')->get()
+                                ->sum(fn($t) => $t->value_points->value);
+        // Include completed-this-period weight in the pool (they're still in DB)
+        $totalPoolWeight  = $allTasksWeight > 0 ? $allTasksWeight : $completedWeight;
+        $weightRate       = $totalPoolWeight > 0
+                                ? round(($completedWeight / $totalPoolWeight) * 100)
+                                : 0;
 
         // Pillar heatmap
         $pillars = Pillar::orderBy('name')->get();
@@ -116,7 +124,7 @@ class Insights extends Component
         $aiSummary = cache()->remember(
             $cacheKey,
             now()->addHours(6),
-            fn() => $this->generateAiSummary($completedTasks, $routineDone, $totalSlots, $upskillingDone, $totalPoints, $reflectionLogs)
+            fn() => $this->generateAiSummary($completedTasks, $routineDone, $totalSlots, $upskillingDone, $totalPoints, $reflectionLogs, $completedWeight, $totalPoolWeight, $weightRate)
         );
 
         cache()->put($hashKey, $currentHash, now()->addHours(6));
@@ -125,7 +133,8 @@ class Insights extends Component
             'from', 'to', 'completedTasks', 'completionRate', 'totalPoints',
             'upskillingDone', 'routineDone', 'routineRate', 'totalSlots',
             'pillars', 'dates', 'heatmap', 'dayPattern', 'maxPattern',
-            'trackerAvg', 'aiSummary', 'reflectionLogs'
+            'trackerAvg', 'aiSummary', 'reflectionLogs',
+            'completedWeight', 'totalPoolWeight', 'weightRate'
         ));
     }
 
@@ -220,11 +229,16 @@ class Insights extends Component
         return $avg;
     }
 
-    private function generateAiSummary(Collection $completedTasks, int $routineDone, int $totalSlots, int $upskillingDone, int $totalPoints, Collection $reflectionLogs): ?string
+    private function generateAiSummary(Collection $completedTasks, int $routineDone, int $totalSlots, int $upskillingDone, int $totalPoints, Collection $reflectionLogs, int $completedWeight = 0, int $totalPoolWeight = 0, int $weightRate = 0): ?string
     {
         try {
             $periodLabel = $this->period === 'month' ? 'this month' : 'this week';
-            $routineRate = $totalSlots > 0 ? round(($routineDone / $totalSlots) * 100) : 0;
+
+            // Top completed tasks by weight — what actually got done
+            $topDone = $completedTasks->sortByDesc(fn($t) => $t->value_points->value)
+                ->take(3)
+                ->map(fn($t) => "'{$t->title}' ({$t->value_points->value} pts)")
+                ->values()->implode(', ');
 
             $pillarBreakdown = $completedTasks->flatMap->pillars
                 ->groupBy('name')->map->count()
@@ -243,18 +257,19 @@ class Insights extends Component
                 $reflectionsBlock = "\n\nUSER'S JOURNAL ENTRIES ({$periodLabel}):\n{$lines}";
             }
 
-            $prompt = "Here is a complete picture of the user's {$periodLabel}:
+            $prompt = "Here is what the user accomplished {$periodLabel}:
 
-DATA:
-- Tasks completed: {$completedTasks->count()} (total value points: {$totalPoints})
-- Upskilling tasks done: {$upskillingDone}
-- Daily routine completion: {$routineDone}/{$totalSlots} ({$routineRate}%)"
-. ($pillarBreakdown ? "\n- Work area focus: {$pillarBreakdown}" : '')
+WHAT THEY COMPLETED:
+- Tasks finished: {$completedTasks->count()} · Weight delivered: {$completedWeight} pts out of {$totalPoolWeight} pts total ({$weightRate}%)"
+. ($topDone ? "\n- Highest-value tasks done: {$topDone}" : '')
+. ($upskillingDone ? "\n- Upskilling tasks completed: {$upskillingDone}" : '')
+. ($pillarBreakdown ? "\n- Life areas worked on: {$pillarBreakdown}" : '')
+. "\n- Daily habits kept: {$routineDone}/{$totalSlots}"
 . $reflectionsBlock . "
 
-Write a warm, 3–4 sentence reflection. Lead with emotional validation — acknowledge what they may be feeling based on the journal entries and numbers, without judgment. Gently name any patterns you notice, as an observation not a verdict. If you offer a suggestion, make it feel like a kind question or an invitation, never a directive or a challenge. The tone must feel like a safe, caring space — the user should feel seen and supported, not graded. Pure flowing prose, no bullet points, no headers, under 110 words.";
+Using ONLY what was accomplished and the journal entries, write a warm 3–4 sentence reflection. Open by genuinely acknowledging what was done — especially the weight of the completed tasks, not just the count. If they did heavy work, say so with warmth. Draw on the journal entries to reflect their inner experience back with care. Do NOT mention what is undone, pending, or incomplete — that is not your role here. Never use words like 'only', 'just', 'still', 'yet', 'despite', 'however', or 'but'. Close with a gentle, hopeful observation — not a directive. Pure flowing prose, no bullets, no headers, under 110 words.";
 
-            $system = 'You are a compassionate, non-judgmental therapist who happens to have access to the user\'s productivity data and personal journal. Your role is to make the user feel deeply understood — not evaluated. You never shame, pressure, or set targets. You reflect emotions back gently, name patterns with curiosity not criticism, and offer possibilities instead of prescriptions. If the numbers are low, you hold space for that without dwelling on it. Pure prose only — no bullets, no headers, no bold text.';
+            $system = 'You are a warm, deeply empathetic therapist with access to someone\'s personal productivity journal. Your entire purpose is to make this person feel genuinely seen, valued, and understood — never evaluated or pushed. You celebrate what was done, especially the heavy meaningful work. You never mention what was not done, never frame anything as a gap, never suggest they should do more. You speak with the softness of someone who truly cares. If the numbers seem low to an outsider, you trust the person\'s inner experience and reflect the emotional truth in their journal instead. Pure prose only — no bullets, no headers, no bold text.';
 
             return app(AnthropicService::class)->message($prompt, $system, 400);
         } catch (\Exception) {

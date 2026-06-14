@@ -26,10 +26,10 @@
     {{-- ===== KPI CARDS ===== --}}
     @php
         $kpis = [
-            ['label' => 'Tasks Done',       'value' => $completedTasks->count(), 'sub' => $totalPoints . ' pts total',              'accent' => 'bg-brand-dark'],
-            ['label' => 'Completion Rate',  'value' => $completionRate . '%',    'sub' => 'of all active tasks',                    'accent' => 'bg-emerald-600'],
-            ['label' => 'Upskilling Done',  'value' => $upskillingDone,          'sub' => 'learning tasks completed',               'accent' => 'bg-violet-600'],
-            ['label' => 'Routine Rate',     'value' => $routineRate . '%',        'sub' => $routineDone . '/' . $totalSlots . ' slots', 'accent' => 'bg-amber-500'],
+            ['label' => 'Tasks Done',       'value' => $completedTasks->count(), 'sub' => $completedWeight . ' pts delivered',          'accent' => 'bg-brand-dark'],
+            ['label' => 'Value Delivered',  'value' => $weightRate . '%',        'sub' => $completedWeight . ' / ' . $totalPoolWeight . ' pts', 'accent' => 'bg-emerald-600'],
+            ['label' => 'Upskilling Done',  'value' => $upskillingDone,          'sub' => 'learning tasks completed',                   'accent' => 'bg-violet-600'],
+            ['label' => 'Routine Rate',     'value' => $routineRate . '%',        'sub' => $routineDone . '/' . $totalSlots . ' slots',  'accent' => 'bg-amber-500'],
         ];
     @endphp
     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
