@@ -211,11 +211,60 @@
             document.getElementById('push-btn').title = subscribed ? 'Disable push notifications' : 'Enable push notifications';
         }
 
-        // Sync on page load
+        // Sync on page load + auto-prompt if never asked
         document.addEventListener('DOMContentLoaded', () => {
             const subscribed = !!localStorage.getItem('push_subscribed');
             setPushUI(subscribed);
+
+            // Show the permission modal once if not subscribed and not dismissed
+            if (!subscribed && !localStorage.getItem('push_prompt_dismissed') && Notification.permission !== 'denied') {
+                setTimeout(() => {
+                    document.getElementById('push-modal').classList.remove('hidden');
+                }, 1500);
+            }
         });
+
+        function dismissPushModal() {
+            document.getElementById('push-modal').classList.add('hidden');
+            localStorage.setItem('push_prompt_dismissed', '1');
+        }
+
+        async function enablePushFromModal() {
+            document.getElementById('push-modal').classList.add('hidden');
+            const { subscribePush, isSubscribed } = window.__push ?? {};
+            if (!subscribePush) return;
+            const result = await subscribePush();
+            setPushUI(result.ok);
+        }
     </script>
+
+    {{-- Push Permission Modal --}}
+    <div id="push-modal"
+         class="hidden fixed inset-0 z-[100] flex items-end justify-center sm:items-center px-4 pb-6 sm:pb-0"
+         style="background: rgba(0,0,0,0.4)">
+        <div class="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4">
+            <div class="flex items-start gap-4">
+                <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand-dark">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-semibold text-brand-dark">Stay on track with DayOS</p>
+                    <p class="mt-1 text-sm text-gray-500">Get a morning boost at 7 AM and a nudge at 5 PM if you haven't checked in yet.</p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="dismissPushModal()"
+                        class="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-500 hover:text-brand-dark transition">
+                    Not now
+                </button>
+                <button onclick="enablePushFromModal()"
+                        class="flex-1 rounded-xl bg-brand-dark py-2.5 text-sm font-semibold text-white hover:opacity-90 transition">
+                    Enable notifications
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
