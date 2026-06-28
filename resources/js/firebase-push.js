@@ -1,63 +1,73 @@
-import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, deleteToken } from 'firebase/messaging';
+const SUB_URL = '/admin/push-subscription';
+const CSRF    = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+const SW_PATH = '/sw.js';
 
-const firebaseConfig = {
-    apiKey:            window.__firebase?.apiKey            ?? '',
-    authDomain:        window.__firebase?.authDomain        ?? '',
-    projectId:         window.__firebase?.projectId         ?? '',
-    storageBucket:     window.__firebase?.storageBucket     ?? '',
-    messagingSenderId: window.__firebase?.messagingSenderId ?? '',
-    appId:             window.__firebase?.appId             ?? '',
-};
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw     = atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
 
-const app       = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
-const VAPID_KEY = window.__firebase?.vapidKey ?? '';
-const TOKEN_URL = '/admin/fcm-token';
-const CSRF      = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-
-async function saveToken(token) {
-    await fetch(TOKEN_URL, {
+async function saveSubscription(sub) {
+    const key  = sub.getKey('p256dh');
+    const auth = sub.getKey('auth');
+    await fetch(SUB_URL, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body:    JSON.stringify({ token }),
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF() },
+        body: JSON.stringify({
+            endpoint:         sub.endpoint,
+            public_key:       key  ? btoa(String.fromCharCode(...new Uint8Array(key)))  : null,
+            auth_token:       auth ? btoa(String.fromCharCode(...new Uint8Array(auth))) : null,
+            content_encoding: (sub.options?.contentEncoding) ?? 'aesgcm',
+        }),
     });
 }
 
-async function removeToken(token) {
-    await fetch(TOKEN_URL, {
+async function deleteSubscription(sub) {
+    await fetch(SUB_URL, {
         method:  'DELETE',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-        body:    JSON.stringify({ token }),
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF() },
+        body:    JSON.stringify({ endpoint: sub.endpoint }),
     });
 }
 
 export async function subscribePush() {
-    if (!('Notification' in window)) return { ok: false, reason: 'not_supported' };
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return { ok: false, reason: 'not_supported' };
+    }
 
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return { ok: false, reason: 'denied' };
 
-    const sw = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+    const registration = await navigator.serviceWorker.register(SW_PATH, { scope: '/' });
+    await navigator.serviceWorker.ready;
 
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: sw });
-    if (!token) return { ok: false, reason: 'no_token' };
+    const vapidKey = document.querySelector('meta[name="vapid-public-key"]')?.content ?? '';
 
-    await saveToken(token);
-    localStorage.setItem('fcm_token', token);
-    return { ok: true, token };
+    const sub = await registration.pushManager.subscribe({
+        userVisibleOnly:      true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+    });
+
+    await saveSubscription(sub);
+    localStorage.setItem('push_subscribed', '1');
+    return { ok: true };
 }
 
 export async function unsubscribePush() {
-    const token = localStorage.getItem('fcm_token');
-    if (token) {
-        await deleteToken(messaging);
-        await removeToken(token);
-        localStorage.removeItem('fcm_token');
+    const registration = await navigator.serviceWorker.getRegistration(SW_PATH);
+    if (registration) {
+        const sub = await registration.pushManager.getSubscription();
+        if (sub) {
+            await deleteSubscription(sub);
+            await sub.unsubscribe();
+        }
     }
+    localStorage.removeItem('push_subscribed');
     return { ok: true };
 }
 
 export function isSubscribed() {
-    return !!localStorage.getItem('fcm_token');
+    return !!localStorage.getItem('push_subscribed');
 }

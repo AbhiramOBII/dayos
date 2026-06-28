@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\FcmTokenController;
+use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Livewire\Admin\Objectives;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\DayThemes;
@@ -67,9 +67,9 @@ Route::prefix('admin')->group(function () {
         Route::get('people-met/create', PeopleMet\Form::class)->name('admin.people-met.create');
         Route::get('people-met/{id}/edit', PeopleMet\Form::class)->name('admin.people-met.edit');
 
-        // FCM Push tokens
-        Route::post('fcm-token', [FcmTokenController::class, 'store'])->name('fcm.token.store');
-        Route::delete('fcm-token', [FcmTokenController::class, 'destroy'])->name('fcm.token.destroy');
+        // Native Web Push subscriptions
+        Route::post('push-subscription', [PushSubscriptionController::class, 'store'])->name('push.subscribe');
+        Route::delete('push-subscription', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
 
         Route::post('logout', function () {
             Auth::logout();

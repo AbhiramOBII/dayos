@@ -41,6 +41,12 @@ return [
         'from_name'=> env('ZEPTOMAIL_FROM_NAME', 'DayOS'),
     ],
 
+    'vapid' => [
+        'subject'     => env('VAPID_SUBJECT', 'mailto:admin@dayos.app'),
+        'public_key'  => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+    ],
+
     'firebase' => [
         'api_key'            => env('FIREBASE_API_KEY'),
         'auth_domain'        => env('FIREBASE_AUTH_DOMAIN'),

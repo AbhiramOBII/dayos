@@ -2,117 +2,77 @@
 
 namespace App\Services;
 
-use App\Models\FcmToken;
-use Illuminate\Support\Facades\Http;
+use App\Models\PushSubscription;
+use Minishlink\WebPush\WebPush;
+use Minishlink\WebPush\Subscription;
 use Illuminate\Support\Facades\Log;
 
 class PushNotificationService
 {
-    private string $projectId;
-    private string $serviceAccountPath;
+    private WebPush $webPush;
 
     public function __construct()
     {
-        $this->projectId          = config('services.firebase.project_id');
-        $this->serviceAccountPath = config('services.firebase.service_account');
+        $auth = [
+            'VAPID' => [
+                'subject'    => config('services.vapid.subject'),
+                'publicKey'  => config('services.vapid.public_key'),
+                'privateKey' => config('services.vapid.private_key'),
+            ],
+        ];
+
+        $this->webPush = new WebPush($auth);
+        $this->webPush->setReuseVAPIDHeaders(true);
+        $this->webPush->setDefaultOptions(['TTL' => 3600]);
     }
 
     /**
-     * Send a push notification to all stored FCM tokens.
+     * Send a push notification to all stored subscriptions.
      */
     public function sendToAll(string $title, string $body, array $data = [], ?string $icon = null): void
     {
-        $tokens = FcmToken::pluck('token');
+        $subscriptions = PushSubscription::all();
 
-        foreach ($tokens as $token) {
-            $this->sendToToken($token, $title, $body, $data, $icon);
-        }
-    }
-
-    /**
-     * Send to a specific FCM token.
-     */
-    public function sendToToken(string $token, string $title, string $body, array $data = [], ?string $icon = null): bool
-    {
-        try {
-            $accessToken = $this->getAccessToken();
-
-            $payload = [
-                'message' => [
-                    'token' => $token,
-                    'notification' => [
-                        'title' => $title,
-                        'body'  => $body,
-                    ],
-                    'webpush' => [
-                        'notification' => [
-                            'title' => $title,
-                            'body'  => $body,
-                            'icon'  => $icon ?? '/images/app-icon.png',
-                            'badge' => '/images/app-icon.png',
-                            'vibrate' => [200, 100, 200],
-                        ],
-                        'fcm_options' => [
-                            'link' => config('app.url') . '/admin/today',
-                        ],
-                    ],
-                    'data' => array_map('strval', $data),
-                ],
-            ];
-
-            $response = Http::withToken($accessToken)
-                ->post("https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send", $payload);
-
-            if ($response->failed()) {
-                Log::warning('FCM send failed', ['token' => substr($token, 0, 20), 'response' => $response->body()]);
-
-                // Remove invalid tokens
-                if ($response->status() === 404 || str_contains($response->body(), 'UNREGISTERED')) {
-                    FcmToken::where('token', $token)->delete();
-                }
-
-                return false;
-            }
-
-            return true;
-        } catch (\Exception $e) {
-            Log::error('FCM exception: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Get a short-lived OAuth2 access token from the service account JSON.
-     */
-    private function getAccessToken(): string
-    {
-        if (! file_exists($this->serviceAccountPath)) {
-            throw new \RuntimeException('Firebase service account JSON not found at: ' . $this->serviceAccountPath);
+        if ($subscriptions->isEmpty()) {
+            Log::info('WebPush: no subscriptions registered.');
+            return;
         }
 
-        $sa = json_decode(file_get_contents($this->serviceAccountPath), true);
-
-        $now = time();
-        $header  = base64url_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
-        $payload = base64url_encode(json_encode([
-            'iss'   => $sa['client_email'],
-            'sub'   => $sa['client_email'],
-            'aud'   => 'https://oauth2.googleapis.com/token',
-            'iat'   => $now,
-            'exp'   => $now + 3600,
-            'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
-        ]));
-
-        $signingInput = "{$header}.{$payload}";
-        openssl_sign($signingInput, $signature, $sa['private_key'], OPENSSL_ALGO_SHA256);
-        $jwt = "{$signingInput}." . base64url_encode($signature);
-
-        $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
-            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            'assertion'  => $jwt,
+        $payload = json_encode([
+            'title' => $title,
+            'body'  => $body,
+            'icon'  => $icon ?? '/images/app-icon.png',
+            'badge' => '/images/app-icon.png',
+            'url'   => $data['url'] ?? '/admin/today',
+            'data'  => $data,
         ]);
 
-        return $response->json('access_token');
+        foreach ($subscriptions as $sub) {
+            $subscription = Subscription::create([
+                'endpoint'        => $sub->endpoint,
+                'publicKey'       => $sub->public_key,
+                'authToken'       => $sub->auth_token,
+                'contentEncoding' => $sub->content_encoding ?? 'aesgcm',
+            ]);
+
+            $this->webPush->queueNotification($subscription, $payload);
+        }
+
+        foreach ($this->webPush->flush() as $report) {
+            $endpoint = $report->getRequest()->getUri()->__toString();
+
+            if (! $report->isSuccess()) {
+                Log::warning('WebPush send failed', [
+                    'endpoint' => substr($endpoint, 0, 60),
+                    'reason'   => $report->getReason(),
+                ]);
+
+                if ($report->isSubscriptionExpired()) {
+                    PushSubscription::where('endpoint', $endpoint)->delete();
+                    Log::info('WebPush: removed expired subscription.');
+                }
+            }
+        }
     }
 }
 

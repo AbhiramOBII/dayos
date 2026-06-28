@@ -24,18 +24,8 @@
     <!-- Styles & Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <!-- Firebase config for JS -->
-    <script>
-        window.__firebase = {
-            apiKey:            '{{ config('services.firebase.api_key') }}',
-            authDomain:        '{{ config('services.firebase.auth_domain') }}',
-            projectId:         '{{ config('services.firebase.project_id') }}',
-            storageBucket:     '{{ config('services.firebase.storage_bucket') }}',
-            messagingSenderId: '{{ config('services.firebase.messaging_sender_id') }}',
-            appId:             '{{ config('services.firebase.app_id') }}',
-            vapidKey:          '{{ config('services.firebase.vapid_key') }}',
-        };
-    </script>
+    <!-- VAPID public key for Web Push -->
+    <meta name="vapid-public-key" content="{{ config('services.vapid.public_key') }}">
 </head>
 <body class="min-h-screen bg-brand-light/30 font-sans antialiased" x-data="{ sidebarOpen: false }">
     <div class="flex min-h-screen">
@@ -223,7 +213,7 @@
 
         // Sync on page load
         document.addEventListener('DOMContentLoaded', () => {
-            const subscribed = !!localStorage.getItem('fcm_token');
+            const subscribed = !!localStorage.getItem('push_subscribed');
             setPushUI(subscribed);
         });
     </script>

@@ -1,32 +1,32 @@
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+// ── Native Web Push handlers ──────────────────────────────────────────────────
 
-firebase.initializeApp({
-    apiKey:            self.FIREBASE_API_KEY            || '',
-    authDomain:        self.FIREBASE_AUTH_DOMAIN        || '',
-    projectId:         self.FIREBASE_PROJECT_ID         || '',
-    storageBucket:     self.FIREBASE_STORAGE_BUCKET     || '',
-    messagingSenderId: self.FIREBASE_MESSAGING_SENDER_ID|| '',
-    appId:             self.FIREBASE_APP_ID             || '',
-});
+self.addEventListener('push', event => {
+    let data = {};
+    try { data = event.data?.json() ?? {}; } catch { data = { title: 'DayOS', body: event.data?.text() ?? '' }; }
 
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage(payload => {
-    const { title, body } = payload.notification ?? {};
-    self.registration.showNotification(title ?? 'DayOS', {
-        body:    body ?? '',
-        icon:    '/images/app-icon.png',
-        badge:   '/images/app-icon.png',
+    const title   = data.title ?? 'DayOS';
+    const options = {
+        body:    data.body   ?? '',
+        icon:    data.icon   ?? '/images/app-icon.png',
+        badge:   data.badge  ?? '/images/app-icon.png',
         vibrate: [200, 100, 200],
-        data:    { url: payload.fcmOptions?.link ?? '/admin/today' },
-    });
+        data:    { url: data.url ?? '/admin/today' },
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', event => {
     event.notification.close();
     const url = event.notification.data?.url ?? '/admin/today';
-    event.waitUntil(clients.openWindow(url));
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+            for (const client of list) {
+                if (client.url.includes(url) && 'focus' in client) return client.focus();
+            }
+            return clients.openWindow(url);
+        })
+    );
 });
 
 const CACHE = 'dayos-v2';
