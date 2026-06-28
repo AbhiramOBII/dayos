@@ -91,6 +91,155 @@
         @endif
     </div>
 
+    {{-- ===== MONTHLY OBJECTIVES STRIP ===== --}}
+    <div x-data="{ open: false }" class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+
+        {{-- Header + CTA --}}
+        <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <div>
+                <h2 class="font-semibold text-brand-dark">Monthly Objectives</h2>
+                <p class="text-xs text-brand-muted">{{ $activeObjectives->count() }} active this month</p>
+            </div>
+            @if($activeObjectives->isNotEmpty())
+                <button @click="open = true"
+                        class="inline-flex items-center gap-2 rounded-xl bg-brand-dark px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Add Objective Achieved Today
+                </button>
+            @endif
+        </div>
+
+        {{-- Objectives list --}}
+        @if($activeObjectives->isEmpty())
+            <div class="px-6 py-8 text-center">
+                <p class="text-sm text-brand-muted">No active monthly objectives.</p>
+                <a href="{{ route('admin.objectives.create') }}" class="mt-1 inline-block text-xs font-semibold text-brand-dark underline underline-offset-2">Create one →</a>
+            </div>
+        @else
+            <div class="divide-y divide-gray-50">
+                @foreach($activeObjectives as $obj)
+                    @php
+                        $pct       = $obj->progressPercent();
+                        $progress  = $obj->formattedProgress();
+                        $target    = $obj->formattedTarget();
+                        $todayVal  = $todayLogs->where('objective_id', $obj->id)->sum('value');
+                        $barColor  = $pct >= 100 ? 'bg-emerald-500' : ($pct >= 60 ? 'bg-brand-dark' : ($pct >= 30 ? 'bg-amber-400' : 'bg-red-400'));
+                        $todayFmt  = match($obj->measurement_type->value) {
+                            'currency'   => '₹' . number_format($todayVal, 0),
+                            'percentage' => number_format($todayVal, 1) . '%',
+                            'days'       => number_format($todayVal, 0) . 'd',
+                            default      => number_format($todayVal, 0),
+                        };
+                    @endphp
+                    <div class="flex items-center gap-4 px-6 py-4">
+                        {{-- Icon dot --}}
+                        <div class="h-2.5 w-2.5 flex-shrink-0 rounded-full {{ $barColor }}"></div>
+
+                        {{-- Title + bar --}}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-sm font-semibold text-brand-dark truncate">{{ $obj->title }}</span>
+                                <span class="ml-4 text-xs text-brand-muted flex-shrink-0">{{ $progress }} / {{ $target }}</span>
+                            </div>
+                            <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                                <div class="h-1.5 rounded-full transition-all duration-500 {{ $barColor }}" style="width: {{ $pct }}%"></div>
+                            </div>
+                        </div>
+
+                        {{-- Today's logged value --}}
+                        @if($todayVal > 0)
+                            <span class="flex-shrink-0 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                +{{ $todayFmt }} today
+                            </span>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- ===== MODAL ===== --}}
+        <div x-show="open"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @keydown.escape.window="open = false"
+             class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+             style="display:none">
+
+            <div @click.outside="open = false"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 class="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+
+                {{-- Modal header --}}
+                <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                    <h3 class="font-semibold text-brand-dark">Add Objective Achieved Today</h3>
+                    <button @click="open = false" class="rounded-lg p-1.5 text-brand-muted hover:bg-gray-100">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                {{-- Modal body --}}
+                <div class="p-6 space-y-4">
+
+                    @if($logSuccess)
+                        <div x-data x-init="setTimeout(() => { $wire.resetLogSuccess(); open = false; }, 1500)"
+                             class="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-700">
+                            <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Logged! Great work today.
+                        </div>
+                    @else
+                        <form wire:submit.prevent="logProgress" class="space-y-4">
+
+                            <div>
+                                <label class="block text-sm font-medium text-brand-dark mb-1.5">Objective</label>
+                                <select wire:model="logObjectiveId"
+                                        class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+                                    <option value="">Select objective…</option>
+                                    @foreach($activeObjectives as $obj)
+                                        <option value="{{ $obj->id }}">{{ $obj->title }}</option>
+                                    @endforeach
+                                </select>
+                                @error('logObjectiveId') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-brand-dark mb-1.5">Value</label>
+                                <input wire:model="logValue" type="number" min="0.01" step="any"
+                                       placeholder="e.g. 5000"
+                                       class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+                                @error('logValue') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-brand-dark mb-1.5">Note <span class="text-brand-muted font-normal">(optional)</span></label>
+                                <input wire:model="logNote" type="text"
+                                       placeholder="e.g. Closed deal with Acme"
+                                       class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+                            </div>
+
+                            <div class="flex items-center justify-end gap-3 pt-1">
+                                <button type="button" @click="open = false"
+                                        class="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-medium text-brand-muted hover:text-brand-dark">
+                                    Cancel
+                                </button>
+                                <button type="submit"
+                                        class="rounded-xl bg-brand-dark px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90">
+                                    Submit
+                                </button>
+                            </div>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+    </div>
+
     {{-- ===== HISTORY ===== --}}
     @if($history->count() > 0)
         <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">

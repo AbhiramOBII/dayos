@@ -23,6 +23,19 @@
 
     <!-- Styles & Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <!-- Firebase config for JS -->
+    <script>
+        window.__firebase = {
+            apiKey:            '{{ config('services.firebase.api_key') }}',
+            authDomain:        '{{ config('services.firebase.auth_domain') }}',
+            projectId:         '{{ config('services.firebase.project_id') }}',
+            storageBucket:     '{{ config('services.firebase.storage_bucket') }}',
+            messagingSenderId: '{{ config('services.firebase.messaging_sender_id') }}',
+            appId:             '{{ config('services.firebase.app_id') }}',
+            vapidKey:          '{{ config('services.firebase.vapid_key') }}',
+        };
+    </script>
 </head>
 <body class="min-h-screen bg-brand-light/30 font-sans antialiased" x-data="{ sidebarOpen: false }">
     <div class="flex min-h-screen">
@@ -58,6 +71,11 @@
                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-brand-light/80 transition hover:bg-brand-muted/30 hover:text-brand-white {{ request()->routeIs('admin.insights') ? 'bg-brand-muted/30 text-brand-white' : '' }}">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                     Insights
+                </a>
+                <a href="{{ route('admin.objectives.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-brand-light/80 transition hover:bg-brand-muted/30 hover:text-brand-white {{ request()->routeIs('admin.objectives.*') ? 'bg-brand-muted/30 text-brand-white' : '' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    Monthly
                 </a>
                 <a href="{{ route('admin.dashboard') }}"
                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-brand-light/80 transition hover:bg-brand-muted/30 hover:text-brand-white {{ request()->routeIs('admin.dashboard') ? 'bg-brand-muted/30 text-brand-white' : '' }}">
@@ -122,7 +140,16 @@
                 {{-- App name on mobile --}}
                 <span class="text-base font-bold text-brand-dark lg:hidden">DayOS</span>
                 <div class="flex-1"></div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-3">
+                    {{-- Push notification bell --}}
+                    <button id="push-btn"
+                            title="Enable push notifications"
+                            onclick="window.__pushToggle()"
+                            class="relative rounded-lg p-2 text-brand-muted transition hover:bg-brand-light hover:text-brand-dark">
+                        <svg id="push-icon-bell" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        <svg id="push-icon-off" class="h-5 w-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.73 21a2 2 0 01-3.46 0M18.63 13A17.89 17.89 0 0118 11v-2a6 6 0 00-9.33-5M3 3l18 18M9.88 9.88A5.98 5.98 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h10"/></svg>
+                        <span id="push-dot" class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-green-500 hidden"></span>
+                    </button>
                     <span class="hidden text-sm font-medium text-brand-dark sm:block">{{ auth()->user()->name }}</span>
                     <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-muted text-xs font-bold text-brand-white">
                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
@@ -172,5 +199,33 @@
             </button>
         </div>
     </nav>
+    <script>
+        window.__pushToggle = async function () {
+            const { subscribePush, unsubscribePush, isSubscribed } = window.__push ?? {};
+            if (!subscribePush) return;
+
+            if (isSubscribed()) {
+                await unsubscribePush();
+                setPushUI(false);
+            } else {
+                const result = await subscribePush();
+                setPushUI(result.ok);
+                if (!result.ok) alert('Could not enable notifications: ' + (result.reason ?? 'unknown'));
+            }
+        };
+
+        function setPushUI(subscribed) {
+            document.getElementById('push-icon-bell').classList.toggle('hidden', !subscribed ? false : true);
+            document.getElementById('push-icon-off').classList.toggle('hidden', subscribed ? false : true);
+            document.getElementById('push-dot').classList.toggle('hidden', !subscribed);
+            document.getElementById('push-btn').title = subscribed ? 'Disable push notifications' : 'Enable push notifications';
+        }
+
+        // Sync on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const subscribed = !!localStorage.getItem('fcm_token');
+            setPushUI(subscribed);
+        });
+    </script>
 </body>
 </html>

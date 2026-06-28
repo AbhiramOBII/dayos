@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin;
 
 use App\Models\DailyTimeline;
+use App\Models\ObjectiveLog;
+use App\Models\QuarterlyObjective;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -11,9 +13,38 @@ class DayTracker extends Component
 {
     public string $today;
 
+    // Objective log form
+    public ?int   $logObjectiveId = null;
+    public string $logValue       = '';
+    public string $logNote        = '';
+    public bool   $logSuccess     = false;
+
     public function mount(): void
     {
         $this->today = now()->toDateString();
+    }
+
+    public function logProgress(): void
+    {
+        $this->validate([
+            'logObjectiveId' => 'required|exists:quarterly_objectives,id',
+            'logValue'       => 'required|numeric|min:0.01',
+        ]);
+
+        ObjectiveLog::create([
+            'objective_id' => $this->logObjectiveId,
+            'value'        => $this->logValue,
+            'note'         => $this->logNote ?: null,
+            'logged_date'  => $this->today,
+        ]);
+
+        $this->reset(['logValue', 'logNote']);
+        $this->logSuccess = true;
+    }
+
+    public function resetLogSuccess(): void
+    {
+        $this->logSuccess = false;
     }
 
     public function saveField(string $field, ?string $value): void
@@ -53,6 +84,19 @@ class DayTracker extends Component
             ->limit(30)
             ->get();
 
-        return view('livewire.admin.day-tracker', compact('todayRecord', 'history'));
+        $today = $this->today;
+        $activeObjectives = QuarterlyObjective::where('user_id', auth()->id())
+            ->where('start_date', '<=', $today)
+            ->whereRaw('DATE_ADD(start_date, INTERVAL 30 DAY) >= ?', [$today])
+            ->orderBy('title')
+            ->get();
+
+        $todayLogs = ObjectiveLog::with('objective')
+            ->whereIn('objective_id', $activeObjectives->pluck('id'))
+            ->where('logged_date', $today)
+            ->latest()
+            ->get();
+
+        return view('livewire.admin.day-tracker', compact('todayRecord', 'history', 'activeObjectives', 'todayLogs'));
     }
 }

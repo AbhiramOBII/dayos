@@ -7,20 +7,20 @@
     <style>
         body { margin: 0; padding: 0; background: #f5f5f0; font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; }
         .wrapper { max-width: 600px; margin: 32px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
-        .header { background: #1a1a1a; padding: 32px 40px; }
+        .header { background: #151828; padding: 32px 40px; }
         .header h1 { margin: 0; color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
         .header p { margin: 4px 0 0; color: rgba(255,255,255,.55); font-size: 13px; }
         .body { padding: 36px 40px; }
         .body p { margin: 0 0 18px; font-size: 15px; line-height: 1.75; color: #2c2c2c; }
         .body p:last-child { margin-bottom: 0; }
-        .highlight { background: #f8f7f2; border-left: 3px solid #1a1a1a; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 24px 0; }
+        .highlight { background: #f8f7f2; border-left: 3px solid #151828; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 24px 0; }
         .highlight p { margin: 0 0 10px; font-size: 14px; color: #444; }
         .highlight p:last-child { margin-bottom: 0; }
-        .highlight strong { color: #1a1a1a; }
+        .highlight strong { color: #151828; }
         .divider { border: none; border-top: 1px solid #ebebeb; margin: 28px 0; }
         .signature { font-size: 14px; line-height: 1.8; color: #444; }
-        .signature strong { color: #1a1a1a; font-size: 15px; }
-        .signature a { color: #1a1a1a; text-decoration: none; }
+        .signature strong { color: #151828; font-size: 15px; }
+        .signature a { color: #151828; text-decoration: none; }
         .footer { background: #f8f7f2; padding: 20px 40px; font-size: 12px; color: #999; text-align: center; }
     </style>
 </head>

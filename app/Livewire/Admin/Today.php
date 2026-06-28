@@ -5,6 +5,8 @@ namespace App\Livewire\Admin;
 use App\Enums\TaskStatus;
 use App\Services\AnthropicService;
 use App\Models\DailyThemeAssignment;
+use App\Models\ObjectiveLog;
+use App\Models\QuarterlyObjective;
 use App\Models\TaskTbcbLog;
 use App\Models\UpskillingGoal;
 use App\Models\DayTheme;
@@ -20,6 +22,12 @@ class Today extends Component
 {
     public array  $reflections = [];
     public bool   $showAddTask = false;
+
+    // Objective log
+    public ?int   $logObjectiveId = null;
+    public string $logValue       = '';
+    public string $logNote        = '';
+    public bool   $logSuccess     = false;
     public string $newTaskTitle = '';
     public string $newTaskDescription = '';
     public int    $newTaskPoints = 5;
@@ -140,6 +148,29 @@ class Today extends Component
         Task::findOrFail($taskId)->update(['status' => TaskStatus::Completed->value]);
     }
 
+    public function logProgress(): void
+    {
+        $this->validate([
+            'logObjectiveId' => 'required|exists:quarterly_objectives,id',
+            'logValue'       => 'required|numeric|min:0.01',
+        ]);
+
+        ObjectiveLog::create([
+            'objective_id' => $this->logObjectiveId,
+            'value'        => $this->logValue,
+            'note'         => $this->logNote ?: null,
+            'logged_date'  => now()->toDateString(),
+        ]);
+
+        $this->reset(['logObjectiveId', 'logValue', 'logNote']);
+        $this->logSuccess = true;
+    }
+
+    public function resetLogSuccess(): void
+    {
+        $this->logSuccess = false;
+    }
+
     public function render()
     {
         $today    = now()->toDateString();
@@ -209,12 +240,25 @@ class Today extends Component
             }
         }
 
+        $activeObjectives = QuarterlyObjective::where('user_id', auth()->id())
+            ->where('start_date', '<=', $today)
+            ->whereRaw('DATE_ADD(start_date, INTERVAL 30 DAY) >= ?', [$today])
+            ->orderBy('title')
+            ->get();
+
+        $objTodayLogs = ObjectiveLog::with('objective')
+            ->whereIn('objective_id', $activeObjectives->pluck('id'))
+            ->where('logged_date', $today)
+            ->latest()
+            ->get();
+
         return view('livewire.admin.today', compact(
             'theme', 'today', 'tomorrow', 'isEvening', 'hasTomorrowTheme',
             'behaviouralRoutines', 'reflectiveRoutines', 'todayLogs',
             'tasks', 'allThemes', 'behaviouralDone', 'behaviouralTotal',
             'dailyQuote', 'activeUpskillingGoal', 'upskillingTodayCount',
-            'upskillingTotalCount', 'upskillingDoneCount', 'pillars'
+            'upskillingTotalCount', 'upskillingDoneCount', 'pillars',
+            'activeObjectives', 'objTodayLogs'
         ));
     }
 }
