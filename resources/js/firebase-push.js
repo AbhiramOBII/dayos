@@ -45,10 +45,15 @@ export async function subscribePush() {
 
     const vapidKey = document.querySelector('meta[name="vapid-public-key"]')?.content ?? '';
 
-    const sub = await registration.pushManager.subscribe({
-        userVisibleOnly:      true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-    });
+    let sub;
+    try {
+        sub = await registration.pushManager.subscribe({
+            userVisibleOnly:      true,
+            applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        });
+    } catch (e) {
+        return { ok: false, reason: e.message };
+    }
 
     await saveSubscription(sub);
     localStorage.setItem('push_subscribed', '1');

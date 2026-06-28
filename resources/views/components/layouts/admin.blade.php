@@ -230,11 +230,37 @@
         }
 
         async function enablePushFromModal() {
-            document.getElementById('push-modal').classList.add('hidden');
-            const { subscribePush, isSubscribed } = window.__push ?? {};
-            if (!subscribePush) return;
-            const result = await subscribePush();
-            setPushUI(result.ok);
+            const btn = document.getElementById('push-modal-enable-btn');
+            btn.textContent = 'Enabling…';
+            btn.disabled = true;
+
+            const { subscribePush } = window.__push ?? {};
+            if (!subscribePush) {
+                btn.textContent = 'Enable notifications';
+                btn.disabled = false;
+                return;
+            }
+
+            try {
+                const result = await subscribePush();
+                if (result.ok) {
+                    setPushUI(true);
+                    document.getElementById('push-modal').classList.add('hidden');
+                } else {
+                    btn.textContent = 'Enable notifications';
+                    btn.disabled = false;
+                    document.getElementById('push-modal-error').textContent =
+                        result.reason === 'denied'
+                            ? 'Permission denied. Please allow notifications in your browser settings.'
+                            : 'Could not subscribe: ' + (result.reason ?? 'unknown error');
+                    document.getElementById('push-modal-error').classList.remove('hidden');
+                }
+            } catch (e) {
+                btn.textContent = 'Enable notifications';
+                btn.disabled = false;
+                document.getElementById('push-modal-error').textContent = 'Error: ' + e.message;
+                document.getElementById('push-modal-error').classList.remove('hidden');
+            }
         }
     </script>
 
@@ -254,13 +280,14 @@
                     <p class="mt-1 text-sm text-gray-500">Get a morning boost at 7 AM and a nudge at 5 PM if you haven't checked in yet.</p>
                 </div>
             </div>
+            <p id="push-modal-error" class="hidden text-xs text-red-500 -mb-1"></p>
             <div class="flex gap-3">
                 <button onclick="dismissPushModal()"
                         class="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-500 hover:text-brand-dark transition">
                     Not now
                 </button>
-                <button onclick="enablePushFromModal()"
-                        class="flex-1 rounded-xl bg-brand-dark py-2.5 text-sm font-semibold text-white hover:opacity-90 transition">
+                <button id="push-modal-enable-btn" onclick="enablePushFromModal()"
+                        class="flex-1 rounded-xl bg-brand-dark py-2.5 text-sm font-semibold text-white hover:opacity-90 transition disabled:opacity-60">
                     Enable notifications
                 </button>
             </div>
