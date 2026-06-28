@@ -266,7 +266,7 @@
 
     {{-- Push Permission Modal --}}
     <div id="push-modal"
-         class="hidden fixed inset-0 z-[100] flex items-end justify-center sm:items-center px-4 pb-6 sm:pb-0"
+         class="hidden fixed inset-0 z-[200] flex items-end justify-center sm:items-center px-4 pb-24 sm:pb-0"
          style="background: rgba(0,0,0,0.4)">
         <div class="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4">
             <div class="flex items-start gap-4">
