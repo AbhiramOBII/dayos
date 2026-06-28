@@ -11,9 +11,9 @@ class SendTestPushNotification extends Command
 
     public function handle(): void
     {
-        $tokens = \App\Models\FcmToken::count();
+        $tokens = \App\Models\PushSubscription::count();
         if ($tokens === 0) {
-            $this->warn('No FCM tokens registered. Open the app and click the bell icon first.');
+            $this->warn('No push subscriptions registered. Open the app and click the bell icon first.');
             return;
         }
 
